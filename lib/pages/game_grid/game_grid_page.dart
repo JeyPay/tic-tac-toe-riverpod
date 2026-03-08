@@ -46,7 +46,7 @@ class GameGridPage extends ConsumerWidget {
             child: Stack(
               children: [
                 _gameGrid(gameGridState, context, ref),
-                if (!gameGridState.playable)
+                if (!gameGridState.isGameOngoing)
                   Positioned(
                     bottom: AppPadding.medium,
                     left: AppPadding.medium,
@@ -104,7 +104,7 @@ class GameGridPage extends ConsumerWidget {
     final gameActions = ref.watch(gameActionsProvider);
 
     return IgnorePointer(
-      ignoring: !gameGridState.playable,
+      ignoring: !gameGridState.isGameOngoing,
       child: CustomPaint(
         foregroundPainter: _WinnerLinePainter(
           from: gameGridState.winnerLine?.from,

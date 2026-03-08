@@ -4,13 +4,13 @@ import 'package:tic_tac_toe/controllers/game_controller.dart';
 class GameGridState {
   final List<List<GameTickType?>> grid;
   final GameTickType playerTurn;
-  final bool playable;
+  final bool isGameOngoing;
   final GridLine? winnerLine;
 
   const GameGridState({
     required this.grid,
     required this.playerTurn,
-    required this.playable,
+    required this.isGameOngoing,
     required this.winnerLine,
   });
 }
@@ -27,7 +27,7 @@ final gameGridProvider = Provider<GameGridState>((ref) {
   return GameGridState(
     grid: grid,
     playerTurn: playerTurn,
-    playable: playable,
+    isGameOngoing: playable,
     winnerLine: winnerLine,
   );
 });
