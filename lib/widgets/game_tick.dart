@@ -41,7 +41,7 @@ class _GameTickWidgetState extends State<GameTickWidget> with SingleTickerProvid
       scale: animation,
       child: Icon(
         icon,
-        size: MediaQuery.sizeOf(context).width / (GameController.gridSize + 1),
+        size: MediaQuery.sizeOf(context).width / (IGameController.gridSize + 1),
         color: AppTheme.of(context).foregroundColor,
       ),
     );

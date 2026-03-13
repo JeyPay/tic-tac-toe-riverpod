@@ -18,7 +18,7 @@ class GameIntelligenceController implements IGameIntelligenceController {
 
   void reset() {}
 
-  GameTickType get aiPlayerTickType => GameController.aiPlayerTickType;
+  GameTickType get aiPlayerTickType => IGameController.aiPlayerTickType;
 
   ///
   /// Check if there is a winner on the current grid.

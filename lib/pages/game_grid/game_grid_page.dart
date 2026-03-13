@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart';
 import 'package:tic_tac_toe/controllers/game_controller.dart';
 import 'package:tic_tac_toe/pages/game_grid/game_grid_provider.dart';
 import 'package:tic_tac_toe/utils/extensions/context_extension.dart';
@@ -13,9 +13,8 @@ import 'package:tic_tac_toe/utils/theme/app_padding.dart';
 import 'package:tic_tac_toe/utils/theme/app_radius.dart';
 import 'package:tic_tac_toe/utils/theme/app_theme.dart';
 import 'package:tic_tac_toe/widgets/game_tick.dart';
-import 'package:tic_tac_toe/widgets/winner_overlay.dart';
 
-class GameGridPage extends ConsumerWidget {
+class GameGridPage extends StatelessWidget {
   static const String path = '/game-grid';
 
   const GameGridPage({super.key});
@@ -23,67 +22,69 @@ class GameGridPage extends ConsumerWidget {
   static Widget separator(BuildContext context) => Container(height: 5, color: AppTheme.of(context).foregroundColor);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gameGridState = ref.watch(gameGridProvider);
-
-    ref.listen<GameGridState>(gameGridProvider, (previous, next) {
-      if (previous?.winnerLine == null && next.winnerLine != null) {
-        final controller = ref.read(gameControllerProvider);
-
-        WinnerOverlay.trigger(
-          context,
-          controller.winnerStream.value,
-        );
-      }
-    });
-
+  Widget build(BuildContext context) {
     return Material(
-      child: Column(
-        children: [
-          _TopBar(),
-          separator(context),
-          Expanded(
-            child: Stack(
+      child: ChangeNotifierProvider<GameGridProvider>(
+        create: (context) => GameGridProvider(context),
+        child: Consumer<GameGridProvider>(
+          builder: (context, gameGridProvider, child) {
+            return Column(
               children: [
-                _GameGrid(),
-                if (!gameGridState.isGameOngoing)
-                  Positioned(
-                    bottom: AppPadding.medium,
-                    left: AppPadding.medium,
-                    right: AppPadding.medium,
-                    child: _NewGameButton(),
+                _TopBar(),
+                separator(context),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      _GameGrid(),
+                      if (!gameGridProvider.state.isGameOngoing)
+                        Positioned(
+                          bottom: AppPadding.medium,
+                          left: AppPadding.medium,
+                          right: AppPadding.medium,
+                          child: _NewGameButton(),
+                        ),
+                    ],
                   ),
+                ),
+                separator(context),
+                _BottomBar(),
               ],
-            ),
-          ),
-          separator(context),
-          _BottomBar(),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 }
 
-class _GameGrid extends ConsumerWidget {
+class _GameGrid extends StatelessWidget {
   const _GameGrid();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gameGridState = ref.watch(gameGridProvider);
-    final gameActions = ref.watch(gameActionsProvider);
+  Widget build(BuildContext context) {
+    final gameGridProvider = context.read<GameGridProvider>();
+    final isGameOngoing = context.select<GameGridProvider, bool>(
+      (gameGridProvider) => gameGridProvider.state.isGameOngoing,
+    );
+    final winnerLine = context.select<GameGridProvider, GridLine?>(
+      (gameGridProvider) => gameGridProvider.state.winnerLine,
+    );
+    final grid = context.select<GameGridProvider, List<List<GameTickType?>>>(
+      (gameGridProvider) => gameGridProvider.state.grid,
+    );
 
     return IgnorePointer(
-      ignoring: !gameGridState.isGameOngoing,
+      ignoring: !isGameOngoing,
       child: CustomPaint(
         foregroundPainter: _WinnerLinePainter(
-          from: gameGridState.winnerLine?.from,
-          to: gameGridState.winnerLine?.to,
+          from: winnerLine?.from,
+          to: winnerLine?.to,
           color: AppTheme.status(context).error,
-          gridSize: GameController.gridSize,
+          gridSize: IGameController.gridSize,
         ),
         child: CustomPaint(
           foregroundPainter: _GridPainter(
-            gridSize: GameController.gridSize,
+            gridSize: IGameController.gridSize,
             color: AppTheme.of(context).foregroundColor,
           ),
           child: Container(
@@ -92,7 +93,7 @@ class _GameGrid extends ConsumerWidget {
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: gameGridState.grid
+              children: grid
                   .mapIndexed(
                     (rowIndex, row) => Expanded(
                       child: Row(
@@ -101,9 +102,9 @@ class _GameGrid extends ConsumerWidget {
                             .mapIndexed(
                               (colIndex, col) => Expanded(
                                 child: GestureDetector(
-                                  onTap: () => gameActions.onTileTap(rowIndex, colIndex),
+                                  onTap: () => gameGridProvider.onTileTap(rowIndex, colIndex),
                                   child: GameTickWidget(
-                                    type: gameGridState.grid[rowIndex][colIndex] ?? GameTickType.none,
+                                    type: grid[rowIndex][colIndex] ?? GameTickType.none,
                                   ),
                                 ),
                               ),
@@ -245,12 +246,14 @@ class _ScoreIndicator extends StatelessWidget {
   }
 }
 
-class _PlayerPlayingIndicator extends ConsumerWidget {
+class _PlayerPlayingIndicator extends StatelessWidget {
   const _PlayerPlayingIndicator();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final gameGridState = ref.watch(gameGridProvider);
+  Widget build(BuildContext context) {
+    final playerTurn = context.select<GameGridProvider, GameTickType>(
+      (gameGridProvider) => gameGridProvider.state.playerTurn,
+    );
 
     return AnimatedSwitcher(
       duration: Duration(milliseconds: 100),
@@ -261,7 +264,7 @@ class _PlayerPlayingIndicator extends ConsumerWidget {
           child: child,
         ),
       ),
-      child: switch (gameGridState.playerTurn) {
+      child: switch (playerTurn) {
         GameTickType.none => Icon(
           Icons.question_mark,
           size: 32,

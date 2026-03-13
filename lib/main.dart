@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:tic_tac_toe/controllers/game_controller.dart';
 import 'package:tic_tac_toe/controllers/game_intelligence_controller.dart';
 import 'package:tic_tac_toe/pages/game_grid/game_grid_page.dart';
@@ -17,21 +17,28 @@ void main() async {
   await preferences.init();
 
   Injector.register<IGameController>(GameController());
-  Injector.register<IGameIntelligenceController>(GameIntelligenceController(gridSize: GameController.gridSize));
+  Injector.register<IGameIntelligenceController>(GameIntelligenceController(gridSize: IGameController.gridSize));
 
-  runApp(ProviderScope(child: AppRoot()));
+  runApp(AppRoot());
 }
 
-class AppRoot extends ConsumerWidget {
+class AppRoot extends StatelessWidget {
   const AppRoot({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
-      theme: ref.watch(appThemeProvider).theme,
-      darkTheme: ref.watch(appThemeProvider).darkTheme,
-      themeMode: ref.watch(appThemeProvider).mode,
-      routerConfig: _router,
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<AppTheme>(
+      create: (context) => AppTheme(),
+      child: Consumer<AppTheme>(
+        builder: (context, appTheme, child) {
+          return MaterialApp.router(
+            theme: appTheme.theme,
+            darkTheme: appTheme.darkTheme,
+            themeMode: appTheme.mode,
+            routerConfig: _router,
+          );
+        },
+      ),
     );
   }
 }

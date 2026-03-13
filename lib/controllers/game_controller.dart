@@ -1,4 +1,3 @@
-import 'package:riverpod/riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:tic_tac_toe/controllers/game_intelligence_controller.dart';
 import 'package:tic_tac_toe/utils/injector.dart';
@@ -44,6 +43,10 @@ enum GameMode {
 }
 
 abstract class IGameController {
+  static const int gridSize = 3;
+  static const GameTickType humanPlayerTickType = GameTickType.cross;
+  static const GameTickType aiPlayerTickType = GameTickType.circle;
+
   ///
   /// Stream of the current player playing.
   ///
@@ -118,10 +121,6 @@ abstract class IGameController {
 class GameController implements IGameController {
   late final IGameIntelligenceController gameIntelligenceController = Injector.get<IGameIntelligenceController>();
 
-  static const int gridSize = 3;
-  static const GameTickType humanPlayerTickType = GameTickType.cross;
-  static const GameTickType aiPlayerTickType = GameTickType.circle;
-
   ///
   /// Game mode.
   ///
@@ -154,7 +153,7 @@ class GameController implements IGameController {
   void init() {
     reset();
 
-    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == aiPlayerTickType) {
+    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == IGameController.aiPlayerTickType) {
       _aiPlay();
     }
   }
@@ -177,7 +176,7 @@ class GameController implements IGameController {
     _playerTurnSubject.value = _playerTurnSubject.value;
     _generateEmptyGrid();
     gameIntelligenceController.reset();
-    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == aiPlayerTickType) {
+    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == IGameController.aiPlayerTickType) {
       _aiPlay();
     }
   }
@@ -203,10 +202,10 @@ class GameController implements IGameController {
   void _generateEmptyGrid() {
     final List<List<GameTickType>> grid = [];
 
-    for (int row = 0; row < gridSize; row++) {
+    for (int row = 0; row < IGameController.gridSize; row++) {
       final List<GameTickType> newRow = [];
       grid.add(newRow);
-      for (int col = 0; col < gridSize; col++) {
+      for (int col = 0; col < IGameController.gridSize; col++) {
         newRow.add(GameTickType.none);
       }
     }
@@ -221,7 +220,7 @@ class GameController implements IGameController {
   ///
   void _resetSubjects({bool soft = true}) {
     _gridSubject.value = [];
-    if (!soft) _playerTurnSubject.value = humanPlayerTickType;
+    if (!soft) _playerTurnSubject.value = IGameController.humanPlayerTickType;
     _winnerSubject.value = GameTickType.none;
     _winnerLineSubject.value = null;
     _gameStatusSubject.value = GameStatus.none;
@@ -265,7 +264,7 @@ class GameController implements IGameController {
 
     _playerTurnSubject.value = _playerTurnSubject.value.other;
 
-    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == aiPlayerTickType) {
+    if (_gameMode == GameMode.humanVsAi && _playerTurnSubject.value == IGameController.aiPlayerTickType) {
       _aiPlay();
     }
   }
@@ -290,12 +289,3 @@ class GameController implements IGameController {
     return !_gridSubject.value.any((r) => r.any((c) => c == GameTickType.none));
   }
 }
-
-// final GameController gameController = GameController();
-final gameControllerProvider = Provider<IGameController>((ref) {
-  final controller = Injector.get<IGameController>();
-
-  ref.onDispose(controller.reset);
-
-  return controller;
-});

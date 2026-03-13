@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:tic_tac_toe/pages/menus/game_mode_selection_page.dart';
 import 'package:tic_tac_toe/utils/extensions/extensions.dart';
 import 'package:tic_tac_toe/utils/theme/app_padding.dart';
 import 'package:tic_tac_toe/utils/theme/app_theme.dart';
 
-class MainMenuPage extends ConsumerWidget {
+class MainMenuPage extends StatelessWidget {
   const MainMenuPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Material(
       child: Column(
         children: [
@@ -38,7 +38,7 @@ class MainMenuPage extends ConsumerWidget {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => ref.read(appThemeProvider.notifier).switchMode(),
+              onTap: () => context.read<AppTheme>().switchMode(),
               child: Container(
                 alignment: Alignment.center,
                 color: AppTheme.of(context).secondaryColor,

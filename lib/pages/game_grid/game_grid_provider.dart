@@ -1,63 +1,106 @@
-import 'package:riverpod/riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:tic_tac_toe/controllers/game_controller.dart';
+import 'package:tic_tac_toe/models/abstract.dart';
+import 'package:tic_tac_toe/utils/injector.dart';
+import 'package:tic_tac_toe/widgets/winner_overlay.dart';
 
 class GameGridState {
-  final List<List<GameTickType?>> grid;
-  final GameTickType playerTurn;
-  final bool isGameOngoing;
-  final GridLine? winnerLine;
+  ///
+  /// Current grid of the game.
+  ///
+  List<List<GameTickType?>> grid = [];
 
-  const GameGridState({
-    required this.grid,
-    required this.playerTurn,
-    required this.isGameOngoing,
-    required this.winnerLine,
-  });
+  ///
+  /// Player expected to play.
+  ///
+  GameTickType playerTurn;
+
+  ///
+  /// `true` if the game can go on.
+  /// `false` if the game is stopped.
+  ///
+  bool isGameOngoing = true;
+
+  ///
+  /// If any winner, store the position of the winning line.
+  ///
+  GridLine? winnerLine;
+
+  GameGridState({required this.playerTurn});
 }
 
-final gameGridProvider = Provider<GameGridState>((ref) {
-  final grid = ref.watch(_gridProvider).value ?? [];
-  final playerTurn = ref.watch(_playerTurnProvider).value ?? GameTickType.none;
-  final winnerLine = ref.watch(_winnerLineProvider).value;
+class GameGridProvider extends BaseProvider<GameGridState> {
+  final IGameController gameController = Injector.get<IGameController>();
 
-  final gameStatus = ref.watch(_gameStatusProvider).value;
+  int get gridSize => IGameController.gridSize;
 
-  final playable = gameStatus == GameStatus.none || gameStatus == GameStatus.playing;
+  BuildContext context;
 
-  return GameGridState(
-    grid: grid,
-    playerTurn: playerTurn,
-    isGameOngoing: playable,
-    winnerLine: winnerLine,
-  );
-});
+  GameGridProvider(this.context)
+    : super(
+        GameGridState(
+          playerTurn: Injector.get<IGameController>().playerTurnStream.value,
+        ),
+      ) {
+    _setListeners();
+  }
 
-final gameActionsProvider = Provider((ref) {
-  final controller = ref.watch(gameControllerProvider);
+  @override
+  void dispose() {
+    gameController.reset();
 
-  return (
-    onTileTap: (int row, int col) {
-      controller.placeTickAt(row, col);
-    },
-  );
-});
+    super.dispose();
+  }
 
-final _gridProvider = StreamProvider<List<List<GameTickType?>>>((ref) {
-  final controller = ref.watch(gameControllerProvider);
-  return controller.gridStream;
-});
+  void _setListeners() {
+    gameController.playerTurnStream.listen(_playerTurnListener).store(this);
+    gameController.gridStream.listen(_gridListener).store(this);
+    gameController.winnerLineStream.listen(_winnerLineListener).store(this);
+    gameController.gameStatusStream.listen(_gameStatusListener).store(this);
+  }
 
-final _playerTurnProvider = StreamProvider<GameTickType>((ref) {
-  final controller = ref.watch(gameControllerProvider);
-  return controller.playerTurnStream;
-});
+  ///
+  /// Function callback when a grid tile is tapped.
+  ///
+  void onTileTap(int rowIndex, int colIndex) => gameController.placeTickAt(rowIndex, colIndex);
 
-final _winnerLineProvider = StreamProvider<GridLine?>((ref) {
-  final controller = ref.watch(gameControllerProvider);
-  return controller.winnerLineStream;
-});
+  ///
+  /// Get the player (if any) at a given grid position.
+  ///
+  GameTickType getTickTypeFor(int rowIndex, int colIndex) {
+    return state.grid[rowIndex][colIndex] ?? GameTickType.none;
+  }
 
-final _gameStatusProvider = StreamProvider<GameStatus>((ref) {
-  final controller = ref.watch(gameControllerProvider);
-  return controller.gameStatusStream;
-});
+  void _playerTurnListener(playerTurn) {
+    state.playerTurn = playerTurn;
+
+    notifyListeners();
+  }
+
+  void _gridListener(grid) {
+    state.grid = grid;
+
+    notifyListeners();
+  }
+
+  void _winnerLineListener(winnerLine) {
+    state.winnerLine = winnerLine;
+
+    notifyListeners();
+  }
+
+  void _gameStatusListener(GameStatus gameStatus) {
+    state.isGameOngoing = gameStatus == GameStatus.none || gameStatus == GameStatus.playing;
+
+    final bool hasWinner = gameStatus == GameStatus.winner;
+    final bool isDraw = gameStatus == GameStatus.draw;
+
+    if (hasWinner) {
+      WinnerOverlay.trigger(context, gameController.winnerStream.value);
+    } else if (isDraw) {
+      WinnerOverlay.trigger(context, GameTickType.none);
+    }
+
+    notifyListeners();
+  }
+}

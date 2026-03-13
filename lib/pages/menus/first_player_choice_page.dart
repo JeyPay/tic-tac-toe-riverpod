@@ -19,7 +19,7 @@ class FirstPlayerChoicePage extends StatelessWidget {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => _startGame(context, GameController.aiPlayerTickType),
+              onTap: () => _startGame(context, IGameController.aiPlayerTickType),
               child: Container(
                 alignment: Alignment.center,
                 color: AppTheme.of(context).primaryColor,
@@ -41,7 +41,7 @@ class FirstPlayerChoicePage extends StatelessWidget {
           ),
           Expanded(
             child: GestureDetector(
-              onTap: () => _startGame(context, GameController.humanPlayerTickType),
+              onTap: () => _startGame(context, IGameController.humanPlayerTickType),
               child: Container(
                 alignment: Alignment.center,
                 color: AppTheme.of(context).secondaryColor,
